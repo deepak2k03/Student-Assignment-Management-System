@@ -2,6 +2,9 @@
 
 A beautiful, intuitive, and responsive frontend application for managing student assignments with role-based workflows. Built with React.js and Tailwind CSS, featuring course management, group assignments, and real-time progress tracking.
 
+Here is the live deme link:
+https://student-assignment-management-system.netlify.app/
+
 ## ✨ Features
 
 ### 🎓 Course Management
