@@ -1,172 +1,481 @@
-# Student Assignment Dashboard (Vite + React + Tailwind)
+# Student Assignment Dashboard
 
-A clean, responsive dashboard for a student-assignment management system with role-based views (Student/Admin). No backend is used; all data is simulated and persisted in `localStorage` with a simple client data layer.
+A beautiful, intuitive, and responsive frontend application for managing student assignments with role-based workflows. Built with React.js and Tailwind CSS, featuring course management, group assignments, and real-time progress tracking.
 
-- Stack: React 18, Vite, Tailwind CSS
-- Data: localStorage with initial seed
-- Roles: Student and Admin (Professor)
+## ✨ Features
 
-## Run
+### 🎓 Course Management
+- **Professors** can create and manage multiple courses
+- **Students** see all enrolled courses on their dashboard
+- Course-based assignment organization
+- Semester tracking and student enrollment
 
-1) Install dependencies
+### 📝 Assignment Management
+- **Create Assignments** with:
+  - Title and description
+  - Deadline (date + time)
+  - OneDrive submission link
+  - Submission type (Individual or Group)
+  - Student assignment per course
+- **Track Progress** with:
+  - Visual progress bars
+  - Submission status per student
+  - Analytics and summary counts
+- **Search & Filter** assignments by:
+  - Title/description
+  - Submission status (All/Pending/Submitted)
+
+### 👥 Group Management
+- Students can **create groups** for specific courses
+- Students can **join existing groups**
+- **Group leader system**:
+  - Only group leaders can acknowledge group assignments
+  - When leader acknowledges, all group members are marked as submitted
+- Visual indicators for group membership and leader status
+
+### 📊 Progress Visualization
+- **Overall progress** tracking for students
+- **Per-course progress** bars
+- **Per-assignment analytics** for professors
+- Color-coded status indicators (submitted/pending)
+- Animated progress bars with completion states
+
+### 🎨 Beautiful UI/UX
+- **Smooth animations** and transitions
+- **Toast notifications** for user feedback
+- **Responsive design** for all screen sizes
+- **Form validation** with real-time feedback
+- **Modern card-based** layouts
+- **Hover effects** and visual feedback
+- **Accessible** components with ARIA labels
+
+### 🔐 Authentication
+- Secure login/logout flow
+- User registration with role selection
+- Form validation and error handling
+- Smooth transitions between sign in/sign up
+- Role-based redirect after login
+
+## 🚀 Tech Stack
+
+- **React 19** - Modern React with hooks
+- **Vite** - Fast build tool and dev server
+- **Tailwind CSS** - Utility-first CSS framework
+- **localStorage** - Client-side data persistence (demo backend)
+
+## 📦 Installation & Setup
+
+### Prerequisites
+- Node.js (v16 or higher)
+- npm or yarn
+
+### Steps
+
+1. **Install dependencies**
 ```bash
 npm install
 ```
-2) Start dev server
+
+2. **Start development server**
 ```bash
 npm run dev
 ```
-3) Open the shown URL (usually `http://localhost:5173`).
 
-## Demo accounts and auth
+3. **Open in browser**
+   - The app will be available at `http://localhost:5173` (or the port shown in terminal)
+   - Open the URL in your browser
 
-- Admin: username `ada`, password `admin123`
-- Students: username `alice` or `bob`, password `student123`
-- You can also Sign up a new account (Student or Admin) on the Sign Up tab.
-
-If you ever want to reset the demo data, clear these localStorage keys and refresh:
-`sa_users`, `sa_assignments`, `sa_session`
-
----
-
-## How it’s implemented
-
-### 1) Data layer: localStorage-backed Storage API
-
-File: `src/state/storage.js`
-
-- Defines storage keys:
-  - `sa_users`: array of users `{ id, username, name, role, password }`
-  - `sa_assignments`: array of assignments `{ id, title, description, dueDate, driveLink, createdByAdminId, assignedStudentIds, submissions }`
-  - `sa_session`: session object `{ currentUserId }`
-- Seeding: `seed()` creates one admin (ada) and two students (alice, bob) on first run, plus two sample assignments. Session starts as logged out (`currentUserId: null`).
-- Helpers:
-  - `getUsers()`, `getAssignments()`, `saveAssignments()` for CRUD-like operations
-  - `getSession()`, `setSession()` for session persistence
-  - `createAssignment({ ... })` to create a new assignment with per-student submission map
-  - `updateSubmission({ assignmentId, studentId, submitted })` to mark a student’s submission with timestamp
-  - `login({ username, password })`, `logout()` for auth
-  - `registerUser({ username, name, password, role })` with username uniqueness check; auto-logs in on success
-
-This module is imported by `App.jsx`, which calls `Storage.seed()` once on startup and then uses the API to read/write data. All writes immediately persist to `localStorage`.
-
-### 2) Authentication: login, logout, signup
-
-Files: `src/App.jsx`, `src/pages/Login.jsx`, `src/state/storage.js`
-
-- On first render, `Storage.seed()` ensures demo data exists, then state is initialized from storage.
-- If `session.currentUserId` is null, `App` renders the `Login` page instead of a dashboard.
-- Login:
-  - `Login` calls `onSubmit({ username, password })` → `Storage.login()`.
-  - On success, `Storage.setSession({ currentUserId: user.id })` is persisted; `App` re-reads session and renders the correct dashboard.
-- Logout:
-  - Header’s Logout button calls `Storage.logout()` which sets `{ currentUserId: null }`; `App` detects no user and shows `Login` immediately (we explicitly removed any fallback user selection).
-- Signup:
-  - `Login` toggle provides a Sign Up form (name, username, password, role picker).
-  - `Storage.registerUser()` enforces unique username, creates the user, and auto-logs them in (session updated).
-
-Security note: Passwords are stored in plain text purely for demo purposes. In a real application, you’d use a server, hashed passwords (e.g., bcrypt), and proper auth flows.
-
-### 3) Role-gated UI flow and routing
-
-File: `src/App.jsx`
-
-- Determines the current user from `session.currentUserId` and `users`.
-- If no user: render `Login`.
-- If user is admin: render `AdminDashboard`; otherwise: render `StudentDashboard`.
-- Provides callbacks to dashboards to create assignments and confirm submissions, which call into `Storage` and then refresh state from storage.
-
-### 4) Admin dashboard: create/manage assignments and track progress
-
-File: `src/dashboards/AdminDashboard.jsx`
-
-- Shows a Create Assignment form:
-  - Fields: title, description, due date, Drive link, and a checkbox list of students to assign.
-  - On submit, calls `onCreateAssignment`, which calls `Storage.createAssignment()` with `createdByAdminId` = current admin.
-- Displays assignments created by the current admin with:
-  - A top-level progress bar (see ProgressBar below) for how many assigned students submitted.
-  - A grid of student chips indicating each assigned student’s status: Submitted / Not submitted.
-
-### 5) Student dashboard: list assignments and double-confirm submission
-
-File: `src/dashboards/StudentDashboard.jsx`
-
-- Filters assignments to only those assigned to the logged-in student.
-- Calculates the student’s personal progress: count of submitted vs total shown in a progress bar at the top.
-- Each assignment card shows Drive link and a call-to-action button “I have submitted”. Clicking it triggers a double confirmation flow:
-  1. First modal: “Confirm submission” (acknowledge that you have submitted via Drive)
-  2. Second modal: “Final confirmation” (marks as submitted)
-- On final confirmation, `onConfirmSubmit(assignmentId)` calls `Storage.updateSubmission()` for that student.
-
-### 6) Progress bar implementation
-
-File: `src/components/ProgressBar.jsx`
-
-- Props: `current` and `total`.
-- Computes `percent = total > 0 ? Math.round((current / total) * 100) : 0`.
-- Renders a label row with the numeric percent and a Tailwind-styled bar. The inner bar width is set via inline style `width: ${percent}%` and animated with Tailwind’s transitions. An accessible `role="progressbar"` and ARIA attributes are included.
-- Used in:
-  - Student dashboard: personal submission progress (`submittedCount` / `myAssignments.length`).
-  - Admin dashboard: per-assignment progress (number of assigned students who have submitted / total assigned).
-
-### 7) UI components and styling
-
-Files: `src/components/*`
-
-- `Header.jsx`: Shows app title, role pill (Admin/Student), user name, and Logout button.
-- `AssignmentCard.jsx`: Reusable card for assignment info (title, description, due date, Drive link) with a footer slot for actions and status chips.
-- `ConfirmModal.jsx`: Accessible modal used for the student double-confirmation flow.
-- `ProgressBar.jsx`: See above.
-
-Tailwind configuration (`tailwind.config.js`) adds a `primary` color palette used consistently across buttons, chips, and accents. All components are responsive using Tailwind utility classes.
-
-### 8) Responsiveness and accessibility
-
-- Responsive grid layouts in dashboards (`sm:grid-cols-2`, `lg:grid-cols-3`).
-- Click targets and spacing use Tailwind scale for tap comfort.
-- Color contrast and semantic labels (`role="progressbar"`, ARIA values) are included.
-- Focusable controls rely on native focus and Tailwind focus ring utilities.
-
----
-
-## File layout
-
-```
-index.html                 # Vite entry; loads src/main.jsx
-postcss.config.js          # Tailwind + autoprefixer
-tailwind.config.js         # Tailwind theme and content paths
-src/
-  index.css               # Tailwind directives and base styles
-  state/storage.js        # localStorage data layer, seeding, auth, CRUD helpers
-  components/
-    Header.jsx            # App header with role badge and Logout
-    ProgressBar.jsx       # Reusable progress bar
-    ConfirmModal.jsx      # Modal for double-confirm flow
-    AssignmentCard.jsx    # Assignment presentation card
-  dashboards/
-    StudentDashboard.jsx  # Student view (list + double confirm)
-    AdminDashboard.jsx    # Admin view (create + per-student status)
-  pages/
-    Login.jsx             # Sign In / Sign Up toggle page
-  App.jsx                 # Role gating and app wiring
-  main.jsx                # React root and global CSS import
+4. **Build for production**
+```bash
+npm run build
 ```
 
+5. **Preview production build**
+```bash
+npm run preview
+```
+
+## 👤 Demo Accounts
+
+The application comes with pre-seeded demo accounts:
+
+### Admin (Professor)
+- **Username:** `ada`
+- **Password:** `admin123`
+- Can create courses, manage assignments, and track student progress
+
+### Students
+- **Username:** `alice` or `bob`
+- **Password:** `student123`
+- Can view courses, submit assignments, and manage groups
+
+### Create New Account
+You can also create new accounts by:
+1. Clicking "Sign up" on the login page
+2. Entering name, username, password
+3. Selecting role (Student or Admin)
+
+> **Note:** All data is stored in browser localStorage. To reset demo data, clear these keys in browser DevTools: `sa_users`, `sa_assignments`, `sa_courses`, `sa_groups`, `sa_session`
+
+## 📖 User Flows
+
+### 👨‍🏫 Professor Flow
+
+1. **Login** → Redirected to Professor Dashboard
+
+2. **Dashboard View**
+   - See all courses you teach
+   - Each course card shows:
+     - Course code and name
+     - Semester
+     - Number of assignments
+     - Number of enrolled students
+
+3. **Create Course** (optional)
+   - Click "+ Create Course"
+   - Enter course code, name, semester
+   - Select students to enroll
+   - Click "Create Course"
+
+4. **View Course Assignments**
+   - Click on a course card
+   - See all assignments for that course
+
+5. **Create Assignment**
+   - Click "+ New Assignment"
+   - Fill in:
+     - Title and description
+     - Due date & time
+     - OneDrive link
+     - Submission type (Individual/Group)
+     - Select students to assign
+   - Click "Create Assignment"
+
+6. **Track Submissions**
+   - View progress bars showing submission status
+   - See individual student status (Submitted/Pending)
+   - Filter assignments by status
+   - Search assignments by title/description
+
+### 👨‍🎓 Student Flow
+
+1. **Login** → Redirected to Student Dashboard
+
+2. **Dashboard View**
+   - See all enrolled courses for current semester
+   - View overall progress across all courses
+   - Each course card shows:
+     - Course code and name
+     - Progress (submitted/total)
+     - Group membership (if in a group)
+
+3. **View Course Assignments**
+   - Click on a course card
+   - See all assignments for that course
+   - View course-specific progress
+
+4. **Group Management** (for group assignments)
+   - If not in a group, see prompt to form/join one
+   - Click "Manage Groups" or "Join/Create Group"
+   - **Create Group:**
+     - Enter group name
+     - Click "Create"
+     - You become the group leader
+   - **Join Group:**
+     - Browse available groups
+     - Select a group
+     - Click "Join Selected Group"
+
+5. **Submit Assignment**
+   - For **Individual Assignments:**
+     - Every student must acknowledge submission
+     - Click "Yes, I have submitted"
+     - Confirm in modal
+   - For **Group Assignments:**
+     - **If you're the group leader:**
+       - Click "Yes, I have submitted"
+       - Your acknowledgment marks all group members as submitted
+     - **If you're not the leader:**
+       - Button shows "Only Group Leader Can Submit" (disabled)
+     - **If not in any group:**
+       - Button shows "Join/Create Group"
+       - Must join/create a group before submitting
+
+6. **View Submission Status**
+   - See acknowledgment status (Acknowledged/Not Acknowledged)
+   - For group assignments, see if you or your leader acknowledged
+   - View OneDrive link to access submission folder
+
+## 🏗️ Project Structure
+
+```
+├── index.html                 # Vite entry point
+├── package.json               # Dependencies and scripts
+├── tailwind.config.js         # Tailwind CSS configuration
+├── postcss.config.js          # PostCSS configuration
+├── vite.config.js             # Vite configuration
+│
+└── src/
+    ├── main.jsx               # React root entry
+    ├── index.css              # Global styles and animations
+    │
+    ├── App.jsx                # Main app component (routing, state management)
+    │
+    ├── state/
+    │   └── storage.js         # localStorage data layer
+    │                          # - User management
+    │                          # - Course management
+    │                          # - Assignment CRUD
+    │                          # - Group management
+    │                          # - Authentication
+    │
+    ├── pages/
+    │   └── Login.jsx          # Authentication page (Sign in/Sign up)
+    │
+    ├── dashboards/
+    │   ├── AdminDashboard.jsx # Professor dashboard
+    │   │                      # - Course list view
+    │   │                      # - Course assignments view
+    │   │                      # - Assignment creation
+    │   │                      # - Progress tracking
+    │   │
+    │   └── StudentDashboard.jsx # Student dashboard
+    │                            # - Course list view
+    │                            # - Course assignments view
+    │                            # - Group management
+    │                            # - Assignment submission
+    │
+    └── components/
+        ├── Header.jsx         # App header (logo, user info, logout)
+        ├── AssignmentCard.jsx # Reusable assignment card component
+        ├── ProgressBar.jsx    # Animated progress bar with labels
+        ├── ConfirmModal.jsx   # Modal for confirmation dialogs
+        └── Toast.jsx          # Toast notification component
+```
+
+## 🔧 Key Implementation Details
+
+### Data Model
+
+#### Users
+```javascript
+{
+  id: string,
+  username: string,
+  name: string,
+  role: 'student' | 'admin',
+  password: string // Plain text for demo only
+}
+```
+
+#### Courses
+```javascript
+{
+  id: string,
+  code: string,              // e.g., "CS101"
+  name: string,              // e.g., "Introduction to Computer Science"
+  professorId: string,
+  semester: string,          // e.g., "Fall 2024"
+  enrolledStudentIds: string[]
+}
+```
+
+#### Assignments
+```javascript
+{
+  id: string,
+  title: string,
+  description: string,
+  dueDate: string,           // ISO date string
+  driveLink: string,         // OneDrive URL
+  courseId: string,
+  createdByAdminId: string,
+  submissionType: 'individual' | 'group',
+  assignedStudentIds: string[],
+  submissions: {
+    [studentId]: {
+      submitted: boolean,
+      confirmedAt: string | null,
+      acknowledgedBy?: string  // For group assignments
+    }
+  }
+}
+```
+
+#### Groups
+```javascript
+{
+  id: string,
+  name: string,
+  leaderId: string,
+  memberIds: string[],
+  courseId: string,
+  createdAt: string
+}
+```
+
+### Storage API
+
+The `Storage` module (`src/state/storage.js`) provides:
+
+#### User Management
+- `login({ username, password })` - Authenticate user
+- `logout()` - Clear session
+- `registerUser({ username, name, password, role })` - Create new user
+- `getUsers()` - Get all users
+
+#### Course Management
+- `getCourses()` - Get all courses
+- `createCourse({ name, code, professorId, semester, enrolledStudentIds })` - Create course
+- `saveCourses(courses)` - Save courses array
+
+#### Assignment Management
+- `getAssignments()` - Get all assignments
+- `createAssignment({ title, description, dueDate, driveLink, courseId, submissionType, assignedStudentIds })` - Create assignment
+- `updateSubmission({ assignmentId, studentId, submitted })` - Update submission status (handles group logic)
+
+#### Group Management
+- `getGroups()` - Get all groups
+- `createGroup({ name, leaderId, courseId })` - Create group
+- `joinGroup({ groupId, studentId })` - Add student to group
+- `leaveGroup({ groupId, studentId })` - Remove student from group
+- `getStudentGroup(studentId, courseId)` - Get student's group for a course
+
+### Group Assignment Logic
+
+When a **group leader** acknowledges a group assignment:
+1. System finds the student's group for that course
+2. Verifies the student is the leader
+3. Marks **all group members** as submitted
+4. Stores `acknowledgedBy` field with leader's ID
+
+Non-leaders cannot acknowledge group assignments (UI prevents this).
+
+### Toast Notifications
+
+The app uses a toast notification system for user feedback:
+- **Success** (green) - Successful operations
+- **Error** (red) - Error messages
+- **Info** (blue) - Informational messages
+- **Warning** (amber) - Warning messages
+
+Toasts auto-dismiss after 3 seconds and can be manually closed.
+
+## 🎨 Styling & Design
+
+### Color Palette
+- **Primary**: Indigo shades (`primary-600`, `primary-700`)
+- **Success**: Green shades (for submitted/completed states)
+- **Warning**: Amber/Yellow shades (for pending states)
+- **Error**: Red shades (for errors)
+- **Group**: Purple shades (for group-related UI)
+
+### Animations
+- **Fade in**: Page loads, modals
+- **Slide up**: Cards, forms
+- **Slide in**: Toast notifications
+- **Smooth transitions**: Hover effects, state changes
+
+### Responsive Breakpoints
+- Mobile: Default (< 640px)
+- Tablet: `sm:` (≥ 640px)
+- Desktop: `lg:` (≥ 1024px)
+
+## 🔐 Security Notes
+
+⚠️ **This is a demo application with client-side-only storage.**
+
+- Passwords are stored in **plain text** (NOT secure)
+- All data is stored in **browser localStorage**
+- No backend validation or authentication
+- No data encryption
+
+**For production use:**
+- Implement a proper backend API
+- Use password hashing (bcrypt, Argon2)
+- Implement JWT or session-based authentication
+- Add server-side validation
+- Use a real database
+- Implement proper authorization checks
+
+## 🐛 Troubleshooting
+
+### Can't log in
+- Check username/password (case-sensitive)
+- Clear localStorage and refresh
+- Try demo accounts: `ada/admin123` or `alice/student123`
+
+### Data not saving
+- Check browser console for errors
+- Verify localStorage is enabled in browser
+- Clear localStorage and refresh to reseed data
+
+### Blank page
+- Stop dev server (Ctrl+C)
+- Restart with `npm run dev`
+- Hard refresh browser (Ctrl+F5 / Cmd+Shift+R)
+
+### Groups not working
+- Ensure you're in a group for the course
+- Verify you're the group leader for group assignments
+- Check browser console for errors
+
+### Reset everything
+Clear these localStorage keys:
+```javascript
+localStorage.removeItem('sa_users');
+localStorage.removeItem('sa_assignments');
+localStorage.removeItem('sa_courses');
+localStorage.removeItem('sa_groups');
+localStorage.removeItem('sa_session');
+```
+Then refresh the page.
+
+## 🚧 Future Enhancements
+
+### Potential Features
+- **Real Backend**: Replace localStorage with REST API or GraphQL
+- **File Uploads**: Allow students to upload files directly
+- **Comments/Feedback**: Professors can provide feedback on submissions
+- **Grading System**: Assign grades and rubric scoring
+- **Notifications**: Email/push notifications for deadlines
+- **Calendar View**: Visual calendar of assignment deadlines
+- **Statistics Dashboard**: Charts and analytics for professors
+- **Team Collaboration**: In-app chat for group members
+- **Multi-semester Support**: Historical course data
+- **Bulk Operations**: Bulk create assignments, bulk enroll students
+- **Export Data**: Export grades/reports to CSV/PDF
+- **Dark Mode**: Theme toggle for dark/light modes
+- **Internationalization**: Multi-language support
+
+### Technical Improvements
+- **State Management**: Redux or Zustand for complex state
+- **API Integration**: Axios/Fetch wrapper for API calls
+- **Testing**: Unit tests (Jest) and E2E tests (Cypress/Playwright)
+- **Type Safety**: Migrate to TypeScript
+- **Performance**: Code splitting, lazy loading
+- **PWA**: Make it a Progressive Web App
+
+## 📝 License
+
+This project is created for educational/demonstration purposes.
+
+## 👨‍💻 Development
+
+### Available Scripts
+
+- `npm run dev` - Start development server
+- `npm run build` - Build for production
+- `npm run preview` - Preview production build
+
+### Code Style
+- Use functional components with hooks
+- Follow React best practices
+- Use Tailwind utility classes
+- Keep components small and focused
+- Add comments for complex logic
+
 ---
 
-## Extending this project
-
-- Real backend: Replace `Storage` calls with API requests; remove plain-text passwords; use JWT sessions.
-- More roles: Add TA/Grader, teaching assistants, etc., with tailored dashboards.
-- Rich submissions: Attachments, comments, rubric scoring.
-- Filters/search: By due date, submitted state, or assignment title.
-- Analytics: Charts of completion rates over time.
-
----
-
-## Troubleshooting
-
-- Blank page or console errors after pulls/edits: stop dev server and restart `npm run dev`, then hard refresh (Ctrl+F5).
-- Can’t log in as admin: clear `sa_users`, `sa_assignments`, `sa_session` in localStorage and refresh; try `ada/admin123`.
-- Logout doesn’t go to login screen: ensure `src/App.jsx` computes `currentUser` without fallback and calls `Storage.logout()`.
+**Built with ❤️ using React + Tailwind CSS**
 
